@@ -75,7 +75,6 @@ public:
         }
         if (::bind(fd, getGenericAddress(), length)) {
             perror("ERROR binding socket");
-            exit(1);
         }
     }
 
@@ -94,7 +93,6 @@ public:
         }
         if (::shutdown(fd, SHUT_RDWR)) {
             perror("ERROR shutting down socket");
-            exit(1);
         }
     }
 
@@ -105,7 +103,6 @@ public:
         }
         if (::close(fd)) {
             perror("ERROR closing socket");
-            exit(1);
         }
         fd = -1;
     }
