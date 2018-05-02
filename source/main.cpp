@@ -17,7 +17,7 @@ int main() {
         ThreadPool pool(POOL_SIZE);
 
         while(!ref_stop.get()) {
-            if (client.accept()) {
+            if (client.isAcceptable() && client.accept()) {
                 printf("Connected! Hi, %d!\n", client.getFd());
                 pool.enqueue([client]() mutable {
                     client.read();

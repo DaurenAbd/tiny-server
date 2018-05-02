@@ -33,6 +33,7 @@ protected:
     SocketAddress address{};
     char* buffer{};
     size_t buffer_size{};
+    bool acceptable{};
 
     void initialize_buffer(size_t n = BUFFER) {
         if (buffer == nullptr) {
@@ -57,13 +58,20 @@ public:
         this->server_fd = server_fd;
         this->fd = fd;
 
+        acceptable = true;
         address.internet = new sockaddr_in();
         length = sizeof(sockaddr_in);
         bzero(address.internet, length);
     }
 
+    bool isAcceptable() {
+        return acceptable;
+    }
+
     bool accept() {
+        acceptable = false;
         fd = ::accept(server_fd, getGenericAddress(), &length);
+        acceptable = true;
         return fd != -1;
     }
 
