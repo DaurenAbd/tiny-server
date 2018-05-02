@@ -15,6 +15,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <map>
+#include "SocketAddress.h"
 
 #ifndef ASSIGNMENT_1_SERVERSOCKET_H
 #define ASSIGNMENT_1_SERVERSOCKET_H
@@ -24,12 +25,13 @@ class ServerSocket {
 public:
     static const uint16_t PORT = 5000;
     static const int QUEUE = 3;
+
 protected:
     int fd;
     socklen_t length;
-    sockaddr_in *address;
-public:
+    SocketAddress address{};
 
+public:
     explicit ServerSocket(const char *ip = nullptr, uint16_t port = PORT) {
         this -> fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -39,7 +41,7 @@ public:
         }
 
         int opt_val = 1;
-        timeval timeout;
+        timeval timeout{};
         timeout.tv_sec = 10;
         timeout.tv_usec = 0;
 
@@ -58,12 +60,12 @@ public:
             exit(1);
         }
 
-        address = new sockaddr_in();
+        address.internet = new sockaddr_in();
         length = sizeof(sockaddr_in);
-        bzero(address, length);
-        address->sin_family = AF_INET;
-        address->sin_addr.s_addr = (ip == nullptr) ? INADDR_ANY : inet_addr(ip);
-        address->sin_port = htons(port);
+        bzero(address.internet, length);
+        address.internet->sin_family = AF_INET;
+        address.internet->sin_addr.s_addr = (ip == nullptr) ? INADDR_ANY : inet_addr(ip);
+        address.internet->sin_port = htons(port);
     }
 
     int bind() {
@@ -112,8 +114,8 @@ public:
         return fd;
     }
 
-    sockaddr *getGenericAddress() const {
-        return (sockaddr *) address;
+    sockaddr* getGenericAddress() const {
+        return address.generic;
     }
 };
 

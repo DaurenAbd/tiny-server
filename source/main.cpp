@@ -8,17 +8,17 @@ int main() {
     std::atomic<bool> stop(false);
     auto ref_stop = std::ref(stop);
 
-    std::thread main_thread([&, ref_stop](){
+    std::thread main_thread([&, ref_stop]() {
         ServerSocket server;
         server.bind();
         server.listen();
 
         ClientSocket client = ClientSocket(server);
-        ThreadPool pool(POOL_SIZE + 1);
+        ThreadPool pool(POOL_SIZE);
 
         while(!ref_stop.get()) {
             if (client.accept()) {
-                std::cout << "Connected! Hi, " << client.getFd() << "!\n";
+                printf("Connected! Hi, %d!\n", client.getFd());
                 pool.enqueue([client]() mutable {
                     client.read();
                 });
@@ -30,19 +30,20 @@ int main() {
     });
 
     std::string s;
-    std::cout << "Type `stop` to stop the server\n";
+    printf("Type `stop` to stop the server\n");
+
     while (getline(std::cin, s)) {
         if (s == "stop") {
-            std::cout << "Stopping the server...\n";
+            printf("Stopping the server...\n");
             stop = true;
             break;
         }
-        std::cout << "Unsupported command!\n";
+        printf("Unsupported command!\n");
     }
 
     main_thread.join();
 
-    std::cout << "Bye!\n";
+    printf("Bye!\n");
 
     return 0;
 }

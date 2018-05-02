@@ -44,8 +44,12 @@ public:
                 parameter.pop_back();
             }
 
-            size_t i;
-            for (i = 0; i < arguments.size() && arguments[i] == ' '; ++i);
+            size_t i = 0;
+
+            while (i < arguments.size() && arguments[i] == ' ') {
+                ++i;
+            }
+
             arguments.erase(0, i);
 
             map[parameter] = arguments;

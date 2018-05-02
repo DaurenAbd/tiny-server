@@ -15,7 +15,10 @@
 #include <sstream>
 #include <unordered_map>
 #include <map>
+#include <iostream>
 #include "Query.h"
+#include "SocketAddress.h"
+#include "ServerSocket.h"
 
 #ifndef ASSIGNMENT_1_CLIENTSOCKET_H
 #define ASSIGNMENT_1_CLIENTSOCKET_H
@@ -23,11 +26,12 @@
 class ClientSocket {
 public:
     static const int BUFFER = 8192;
+
 protected:
     int fd{}, server_fd{};
     socklen_t length{};
-    sockaddr_in *address{};
-    char *buffer{};
+    SocketAddress address{};
+    char* buffer{};
     size_t buffer_size{};
 
     void initialize_buffer(size_t n = BUFFER) {
@@ -41,19 +45,21 @@ protected:
     }
 
 public:
-    explicit ClientSocket(ServerSocket &server, int fd = -1) : ClientSocket(server.getFd(), fd) {}
+    explicit ClientSocket(ServerSocket &server, int fd = -1):
+            ClientSocket(server.getFd(), fd) {}
 
     explicit ClientSocket(int server_fd, int fd = -1) {
         if (server_fd == -1) {
             perror("ERROR accepting socket");
             exit(1);
         }
-        this->server_fd = server_fd;
 
+        this->server_fd = server_fd;
         this->fd = fd;
-        address = new sockaddr_in();
+
+        address.internet = new sockaddr_in();
         length = sizeof(sockaddr_in);
-        bzero(address, length);
+        bzero(address.internet, length);
     }
 
     bool accept() {
@@ -62,7 +68,7 @@ public:
     }
 
     void read(size_t n = BUFFER) {
-        initialize_buffer(n);
+        initialize_buffer(n + 1);
 
         FILE *fp;
         long nbytes;
@@ -70,15 +76,13 @@ public:
         nbytes = ::read(fd, buffer, n);
 
         if (nbytes <= 0) {
-            perror("ERROR failed to read the request");
-            return;
+            return perror("ERROR failed to read the request");
         }
 
-        if (nbytes > 0 && nbytes < n) {
+        if (nbytes > 0 && nbytes <= n) {
             buffer[nbytes] = 0;
         } else {
-            read((size_t) nbytes + 1);
-            return;
+            return read((size_t) nbytes);
         }
 
         Query query(buffer);
@@ -88,12 +92,20 @@ public:
             path = "/index.html";
         }
 
-        if ((fp = fopen(("../../public" + path).c_str(), "rb")) == nullptr) {
-            perror("ERROR file not found");
-            exit(1);
+        if (path.find("../") != -1) {
+            path = "/403.html";
         }
 
-        sprintf(buffer, "HTTP/1.0 200 OK\r\nConnection:close\r\n\r\n");
+        path = "../../public" + path;
+
+        if ((fp = fopen(path.c_str(), "rb")) == nullptr) {
+            sprintf(buffer, "HTTP/1.0 404 Not Found\r\nConnection:close\r\n\r\n");
+            path = "../../public/404.html";
+            fp = fopen(path.c_str(), "rb");
+        } else {
+            sprintf(buffer, "HTTP/1.0 200 OK\r\nConnection:close\r\n\r\n");
+        }
+
         write(buffer);
 
         while ((nbytes = fread(buffer, 1, n, fp)) > 0) {
@@ -101,11 +113,9 @@ public:
         }
 
         fclose(fp);
+
         shutdown();
-
-        while(::read(fd, buffer, n) > 0);
-
-        std::cout << "Bye, " << getFd() << "\n";
+        printf("Bye, %d\n", getFd());
         close();
     }
 
@@ -148,8 +158,8 @@ public:
         fd = -1;
     }
 
-    sockaddr *getGenericAddress() const {
-        return (sockaddr *) address;
+    sockaddr* getGenericAddress() const {
+        return address.generic;
     }
 
     int getFd() const {
